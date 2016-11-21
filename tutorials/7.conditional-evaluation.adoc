@@ -1,0 +1,149 @@
+[[conditional-evaluation]]
+= Conditional Evaluation
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#conditional-evaluation
+
+[[simple-conditionals-if-and-unless]]
+== 简单条件：“if” 和 "unless"
+
+有时，您需要仅在满足特定条件时才显示一个模板片段。
+
+例如，假设我们要在产品表中显示一列，它显示产品的评论数量，只要有评论，就显示一个指向该产品的评论详细信息页面的链接。
+
+为了做到这一点，我们将使用 `th:if` 属性：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<table>
+  <tr>
+    <th>NAME</th>
+    <th>PRICE</th>
+    <th>IN STOCK</th>
+    <th>COMMENTS</th>
+  </tr>
+  <tr th:each="prod : ${prods}" th:class="${prodStat.odd}? 'odd'">
+    <td th:text="${prod.name}">Onions</td>
+    <td th:text="${prod.price}">2.41</td>
+    <td th:text="${prod.inStock}? #{true} : #{false}">yes</td>
+    <td>
+      <span th:text="${#lists.size(prod.comments)}">2</span> comment/s
+      <a href="comments.html" 
+         th:href="@{/product/comments(prodId=${prod.id})}" 
+         th:if="${not #lists.isEmpty(prod.comments)}">view</a>
+    </td>
+  </tr>
+</table>
+----
+
+这里可以看到相当多的东西，所以让我们专注于重要的行：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<a href="comments.html"
+   th:href="@{/product/comments(prodId=${prod.id})}" 
+   th:if="${not #lists.isEmpty(prod.comments)}">view</a>
+----
+
+这将创建一个指向评论页面（带有 URL `/product/comments`）的链接，并且 `prodId` 参数设置为产品的 `id`，但前提是产品有评论。
+
+让我们看看最终的标记：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<table>
+  <tr>
+    <th>NAME</th>
+    <th>PRICE</th>
+    <th>IN STOCK</th>
+    <th>COMMENTS</th>
+  </tr>
+  <tr>
+    <td>Fresh Sweet Basil</td>
+    <td>4.99</td>
+    <td>yes</td>
+    <td>
+      <span>0</span> comment/s
+    </td>
+  </tr>
+  <tr class="odd">
+    <td>Italian Tomato</td>
+    <td>1.25</td>
+    <td>no</td>
+    <td>
+      <span>2</span> comment/s
+      <a href="/gtvg/product/comments?prodId=2">view</a>
+    </td>
+  </tr>
+  <tr>
+    <td>Yellow Bell Pepper</td>
+    <td>2.50</td>
+    <td>yes</td>
+    <td>
+      <span>0</span> comment/s
+    </td>
+  </tr>
+  <tr class="odd">
+    <td>Old Cheddar</td>
+    <td>18.75</td>
+    <td>yes</td>
+    <td>
+      <span>1</span> comment/s
+      <a href="/gtvg/product/comments?prodId=4">view</a>
+    </td>
+  </tr>
+</table>
+----
+
+完善！ 这正是我们想要的。
+
+请注意，`th:if` 属性不仅会计算__布尔__条件。 它具有更多的功能，它将遵循以下规则来计算指定的表达式是否为 `true`：
+
+* 如果值不为 null：
+** 如果值是一个布尔值，并且为 `true`。
+** 如果值是一个数字，并且非零
+** 如果值是一个字符，并且非零
+** 如果值是一个字符串，并且不是 "false"，"off" 或 "no"
+** 如果值不是布尔值，数字，字符或字符串。
+* (如果值为 null，`th:if` 将求值为 false）。
+
+另外，`th:if` 有一个相反的属性，`th:unless`，我们可以在前面的例子中使用它，这样就不用爱 OGNL 表达式里面使用 `not` 了：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<a href="comments.html"
+   th:href="@{/comments(prodId=${prod.id})}" 
+   th:unless="${#lists.isEmpty(prod.comments)}">view</a>
+----
+
+[[switch-statements]]
+== Switch statements
+
+还有一种与 Java 中的 __switch__ 结构等效的方式可以有条件地显示内容：`th:switch`/`th:case` 属性集。
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:switch="${user.role}">
+  <p th:case="'admin'">User is an administrator</p>
+  <p th:case="#{roles.manager}">User is a manager</p>
+</div>
+----
+
+注意，一旦一个 `th:case` 属性被计算为 `true`，在同一个 switch 上下文中的其他 `th:case` 属性被计算为 `false`。
+
+默认的选项指定为 `th:case=“*”`：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:switch="${user.role}">
+  <p th:case="'admin'">User is an administrator</p>
+  <p th:case="#{roles.manager}">User is a manager</p>
+  <p th:case="*">User is some other thing</p>
+</div>
+----

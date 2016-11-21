@@ -1,0 +1,256 @@
+[[iteration]]
+= 迭代
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#iteration
+
+到目前为止，我们已经创建了一个主页，用户配置文件页面，以及一个订阅的页面...但我们的产品怎么样？ 为此，我们需要一种方法来迭代集合中的项目以构建我们的产品页面。
+
+[[iteration-basics]]
+== 迭代基础
+
+要在我们的 `/WEB-INF/templates/product/list.html` 页面中显示产品，我们将使用表格。 我们的每个产品将显示在一行（一个 `<tr>` 元素）中，我们需要为模板创建一个__模板行__ - 它示范如何显示每个产品 - 然后指示 Thymeleaf 为每个产品执行一次重复。
+
+标准方言为我们提供了一个属性：`th:each`。
+
+[[using-theach]]
+=== 使用 th:each
+
+对于我们的产品列表页面，我们需要一个控制器方法，它从服务层检索产品列表，并将其添加到模板上下文中：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+public void process(
+        final HttpServletRequest request, final HttpServletResponse response,
+        final ServletContext servletContext, final ITemplateEngine templateEngine)
+        throws Exception {
+    
+    ProductService productService = new ProductService();
+    List<Product> allProducts = productService.findAll(); 
+    
+    WebContext ctx = new WebContext(request, response, servletContext, request.getLocale());
+    ctx.setVariable("prods", allProducts);
+    
+    templateEngine.process("product/list", ctx, response.getWriter());
+    
+}
+----
+
+然后我们在模板中使用 `th:each` 来迭代产品列表：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org">
+
+  <head>
+    <title>Good Thymes Virtual Grocery</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" media="all" 
+          href="../../../css/gtvg.css" th:href="@{/css/gtvg.css}" />
+  </head>
+
+  <body>
+
+    <h1>Product list</h1>
+  
+    <table>
+      <tr>
+        <th>NAME</th>
+        <th>PRICE</th>
+        <th>IN STOCK</th>
+      </tr>
+      <tr th:each="prod : ${prods}">
+        <td th:text="${prod.name}">Onions</td>
+        <td th:text="${prod.price}">2.41</td>
+        <td th:text="${prod.inStock}? #{true} : #{false}">yes</td>
+      </tr>
+    </table>
+  
+    <p>
+      <a href="../home.html" th:href="@{/}">Return to home</a>
+    </p>
+
+  </body>
+
+</html>
+----
+
+上面看到的 `prod : ${prods}` 属性值意味着 “对于 `${prods}` 求值的结果中的每个元素，使用变量 prod 中的当前元素来重复这个模板片段”。 让我们给每个看到的东西起一个名字：
+
+* `${prods}` __要迭代的表达式__或__要迭代的变量__。
+* `prod` __迭代变量__或简单的 __iter 变量__。
+
+请注意，`prod` iter 变量的作用域为 `<tr>` 元素，这意味着它可以用于像 `<td>` 这样的内部标签。
+
+[[iterable-values]]
+=== 可迭代的值
+
+在 Thymeleaf 中，`java.util.List` 类不是唯一可用于迭代的值。有一个相当完整的对象集，它们都可以由 `th:each` 属性来执行迭代：
+
+* 所有实现了 `java.util.Iterable` 的对象
+* 所有实现了 `java.util.Enumeration` 的对象。
+* 所有实现了 `java.util.Iterator` 的对象，其值将被迭代器返回，而不需要在内存中缓存所有的值。
+* 所有实现了 `java.util.Map` 的对象。 当迭代 map 时，iter 变量是 `java.util.Map.Entry` 类。
+* 所有数组。
+* 所有被视为包含对象自身的单值列表的其他对象。
+
+[[keeping-iteration-status]]
+== 保持迭代状态
+
+当使用 `th:each` 时，Thymeleaf 提供了一个用于跟踪迭代状态的机制：__状态变量__。
+
+在 `th:each` 属性中定义状态变量，它包含以下数据：
+
+* `index` 属性：当前的__迭代索引__，从 0 开始。
+* `count` 属性：当前的__迭代__索引，从 1 开始。
+* `size` 属性：要迭代的变量中的元素的总数。
+* `current` 属性：每次迭代的 __iter 变量__。
+* `even`/`odd` 属性：布尔属性，表示当前迭代是偶数还是奇数。
+* `first` 属性：布尔属性，表示当前迭代是否是第一次。
+* `last` 属性：布尔属性，表示当前迭代是否是最后一次。
+
+让我们看看在前面的例子中如何使用它：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<table>
+  <tr>
+    <th>NAME</th>
+    <th>PRICE</th>
+    <th>IN STOCK</th>
+  </tr>
+  <tr th:each="prod,iterStat : ${prods}" th:class="${iterStat.odd}? 'odd'">
+    <td th:text="${prod.name}">Onions</td>
+    <td th:text="${prod.price}">2.41</td>
+    <td th:text="${prod.inStock}? #{true} : #{false}">yes</td>
+  </tr>
+</table>
+----
+
+在 `th:each` 属性中定义状态变量（在本例中为 `iterStat`），通过在 iter 变量之后写入状态变量的名称，用逗号分隔。 就像 iter 变量一样，状态变量的作用域也是由包含 `th:each` 属性的标签所定义的代码片段。
+
+让我们来看看处理模板后的结果：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!DOCTYPE html>
+
+<html>
+
+  <head>
+    <title>Good Thymes Virtual Grocery</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" type="text/css" media="all" href="/gtvg/css/gtvg.css" />
+  </head>
+
+  <body>
+
+    <h1>Product list</h1>
+  
+    <table>
+      <tr>
+        <th>NAME</th>
+        <th>PRICE</th>
+        <th>IN STOCK</th>
+      </tr>
+      <tr class="odd">
+        <td>Fresh Sweet Basil</td>
+        <td>4.99</td>
+        <td>yes</td>
+      </tr>
+      <tr>
+        <td>Italian Tomato</td>
+        <td>1.25</td>
+        <td>no</td>
+      </tr>
+      <tr class="odd">
+        <td>Yellow Bell Pepper</td>
+        <td>2.50</td>
+        <td>yes</td>
+      </tr>
+      <tr>
+        <td>Old Cheddar</td>
+        <td>18.75</td>
+        <td>yes</td>
+      </tr>
+    </table>
+  
+    <p>
+      <a href="/gtvg/" shape="rect">Return to home</a>
+    </p>
+
+  </body>
+  
+</html>
+----
+
+注意，我们的迭代的状态变量工作完美，只为奇数行指定了 `odd` CSS 类。
+
+如果没有显式地设置状态变量，Thymeleaf 将总是创建一个默认的状态变量，其名称为迭代变量的名称后面添加 `Stat`：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<table>
+  <tr>
+    <th>NAME</th>
+    <th>PRICE</th>
+    <th>IN STOCK</th>
+  </tr>
+  <tr th:each="prod : ${prods}" th:class="${prodStat.odd}? 'odd'">
+    <td th:text="${prod.name}">Onions</td>
+    <td th:text="${prod.price}">2.41</td>
+    <td th:text="${prod.inStock}? #{true} : #{false}">yes</td>
+  </tr>
+</table>
+----
+
+[[optimizing-through-lazy-retrieval-of-data]]
+== 通过延迟检索数据进行优化
+
+有时，我们可能希望优化数据集合的检索（例如，从数据库中检索），使得只有在真正使用这些集合的时候才去检索它们。
+
+====
+实际上，这是可以应用于__任何__数据块的东西，但考虑到内存集合可能具有的大小，检索要迭代的集合是这种场景下最常见的情况。
+====
+
+为了支持这一点，Thymeleaf 提供了一种__延迟加载上下文变量__的机制。 实现 `ILazyContextVariable` 接口的上下文变量 - 最有可能通过继承其 `LazyContextVariable` 默认实现 - 将在执行的时候才会解析。 例如：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+context.setVariable(
+     "users",
+     new LazyContextVariable<List<User>>() {
+         @Override
+         protected List<User> loadValue() {
+             return databaseRepository.findAllUsers();
+         }
+     });
+----
+
+这个变量可以在不知道它的__懒惰__的情况下使用，代码如下：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<ul>
+  <li th:each="u : ${users}" th:text="${u.name}">user name</li>
+</ul>
+----
+
+但是同时，如果代码中 `condition` 计算为 `false`，它永远不会初始化（它的 `loadValue()` 方法将永远不会被调用），如：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<ul th:if="${condition}">
+  <li th:each="u : ${users}" th:text="${u.name}">user name</li>
+</ul>
+----

@@ -1,0 +1,102 @@
+[[views-and-view-resolvers]]
+= 视图和视图解析器
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/thymeleafspring.html#views-and-view-resolvers
+
+[[views-and-view-resolvers-in-spring-mvc]]
+== Spring MVC 的视图和视图解析器
+
+Spring MVC 中有两个接口符合其模板系统的核心：
+
+* `org.springframework.web.servlet.View`
+* `org.springframework.web.servlet.ViewResolver`
+
+Views model pages in our applications and allow us to modify and predefine their behaviour by defining them as beans. 视图负责渲染实际的 HTML 接口，通常是通过执行一些模板引擎来完成，如 Thymeleaf。
+
+ViewResolvers 用于获取特定操作和语言环境的 View 对象。通常，控制器要求 ViewResolvers 转发到具有特定名称的视图（由控制器方法返回的字符串），然后应用程序中的所有视图解析器以有序链执行，直到其中一个能够解析该视图，在这种情况下会返回一个 View 对象，并将控制传递给它以进行 HTML 的渲染。
+
+====
+Note that not all pages in our applications have to be defined as Views, but only those which behaviour we wish to be non-standard or configured in a specific way (for example, by wiring some special beans to it). If a ViewResolver is asked a view that has no corresponding bean –which is the common case–, a new View object is created ad hoc and returned.
+====
+
+在过去的 Spring MVC 应用程序中，JSP+JSTL ViewResolver 的典型配置如下所示：
+
+[source,xml,indent=0]
+[subs="verbatim,quotes"]
+----
+<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+  <property name="viewClass" value="org.springframework.web.servlet.view.JstlView" />
+  <property name="prefix" value="/WEB-INF/jsps/" />
+  <property name="suffix" value=".jsp" />
+  <property name="order" value="2" />
+  <property name="viewNames" value="*jsp" />
+</bean>
+----
+
+快速查看其属性就足以了解其配置方式：
+
+* `viewClass` 指定了 View 实例的类。 这是 JSP 解析器所需要的，但是当我们使用 Thymeleaf 时不需要它。
+* `prefix` 和 `suffix` 以类似于 Thymeleaf 的 TemplateResolver 对象中相同名称的属性的方式工作。
+* `order` 指定了在链中查询 ViewResolver 的顺序。
+* `viewNames` 定义（使用通配符）了将由此 ViewResolver 解析的视图名称。
+
+[[views-and-view-resolvers-in-thymeleaf]]
+== Thymeleaf 的视图和视图解析器
+
+Thymeleaf 提供了上面提到的两个接口的实现：
+
+* `org.thymeleaf.spring4.view.ThymeleafView`
+* `org.thymeleaf.spring4.view.ThymeleafViewResolver`
+
+这两个类将负责将 Thymeleaf 模板作为执行控制器的结果。
+
+Thymeleaf 视图解析器的配置与 JSP 非常相似：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+@Bean
+public ThymeleafViewResolver viewResolver(){
+    ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
+    viewResolver.setTemplateEngine(templateEngine());
+    // 注意 'order' 和 'viewNames' 是可选的
+    viewResolver.setOrder(1);
+    viewResolver.setViewNames(new String[] {".html", ".xhtml"});
+    return viewResolver;
+}
+----
+
+...或 XML 配置：
+
+[source,xml,indent=0]
+[subs="verbatim,quotes"]
+----
+<bean class="org.thymeleaf.spring4.view.ThymeleafViewResolver">
+  <property name="templateEngine" ref="templateEngine" />
+  <!-- NOTE 'order' and 'viewNames' are optional -->
+  <property name="order" value="1" />
+  <property name="viewNames" value="*.html,*.xhtml" />
+</bean>
+----
+
+`templateEngine` 参数当然是我们在前一章中定义的 `SpringTemplateEngine` 对象。 其他两个（`order` 和 `viewNames`）都是可选的，并且具有与我们之前看到的 JSP ViewResolver 中相同的含义。
+
+注意，我们不需要 `prefix` 或 `suffix` 参数，因为这些参数已经在模板解析器中指定，而模板解析器又被传递给了模板引擎。
+
+如果我们想定义一个 `View` bean 并添加一些静态变量怎么做呢？ 很容易，只是为它定义一个__原型__ bean：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+@Bean
+@Scope("prototype")
+public ThymeleafView mainView() {
+    ThymeleafView view = new ThymeleafView("main"); // templateName = 'main'
+    view.setStaticVariables(
+        Collections.singletonMap("footer", "The ACME Fruit Company"));
+    return view;
+}
+----
+
+通过这样做，你可以专门执行此视图 bean，通过 bean 名称（在这个例子中为 `mainView`）来选择它。

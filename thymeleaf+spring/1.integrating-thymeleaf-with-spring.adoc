@@ -1,0 +1,17 @@
+[[integrating-thymeleaf-with-spring]]
+= 集成 Thymeleaf 和 Spring
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/thymeleafspring.html#integrating-thymeleaf-with-spring
+
+Thymeleaf 提供了一组 Spring 集成，允许您将其用作 Spring MVC 应用程序中的 JSP 的全功能替代。
+
+这些集成将允许您：
+
+* 使 Spring MVC `@Controller` 对象的映射方法转发到（forward）由 Thymeleaf 管理的模板，与你使用 JSP 一样。
+* 在模板中使用 **Spring 表达式语言（Spring EL）**而不是 OGNL。
+* 在模板中创建表单，表单与表单支持（bean-backing） bean 和结果绑定完全集成，包括使用属性编辑器，转换服务和验证错误处理。
+* 显示来自 Spring 管理的消息文件中的国际化消息（通过常用的 `MessageSource` 对象）。
+* 使用 Spring 自己的资源解析机制解析模板。
+
+请注意，为了完全理解本教程，您应该首先阅读 “使用 Thymeleaf” 的教程，它深入地介绍了标准方言。

@@ -1,0 +1,326 @@
+[[using-texts]]
+= 使用文本
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#using-texts
+
+[[a-multi-language-welcome]]
+== 多语言的欢迎消息
+
+我们的第一个任务是为我们的杂货店网站创建一个主页。
+
+该页面的第一个版本非常简单：只是一个标题和欢迎消息。 这是我们的 /WEB-INF/templates/home.html 文件：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org">
+
+  <head>
+    <title>Good Thymes Virtual Grocery</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" media="all" 
+          href="../../css/gtvg.css" th:href="@{/css/gtvg.css}" />
+  </head>
+
+  <body>
+  
+    <p th:text="#{home.welcome}">Welcome to our grocery store!</p>
+  
+  </body>
+
+</html>
+----
+
+你会注意到的第一件事是，这是一个 HTML5 文件，所有浏览器都可以正确地显示它，因为它不包括任何的非 HTML 标签（浏览器会忽略不能理解的所有属性，如 `th:text`）。
+
+但是您可能还会注意到，此模板不是真正有效的 HTML5 文档，因为我们使用的 `th:*` 格式的非标准属性是 HTML5 规范所不允许的。 事实上，我们甚至在 `<html>` 标签中添加了一个 `xmlns:th` 属性，这绝对是 non-HTML5-ish：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<html xmlns:th="http://www.thymeleaf.org">
+----
+
+...它在模板处理中没有任何影响，但是作为__咒语__阻止了我们的 IDE 抱怨缺少所有 `th:*` 属性的命名空间定义。
+
+那么，如果我们想让这个模板变为 **HTML5 有效** 该怎么办？ 简单：切换到 Thymeleaf 的数据属性语法，在属性名称上使用 `data-` 前缀，并使用连字符（-）而非分号（:)作为分隔符：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!DOCTYPE html>
+
+<html>
+
+  <head>
+    <title>Good Thymes Virtual Grocery</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" media="all" 
+          href="../../css/gtvg.css" data-th-href="@{/css/gtvg.css}" />
+  </head>
+
+  <body>
+  
+    <p data-th-text="#{home.welcome}">Welcome to our grocery store!</p>
+  
+  </body>
+
+</html>
+----
+
+HTML5 规范允许自定义具有 `data-` 前缀的属性，因此，使用上面的代码，我们的模板将是一个 __有效的 HTML5 文档__。
+
+====
+这两种表示是完全等价的，而且可以互换，但为了让代码示例更简单和紧凑的，本教程将使用 __命名空间符号（`th:*`）__。 此外，`th:*` 符号更通用，并支持所有的 Thymeleaf 模板模式（XML，TEXT ...），而 `data-` 符号只支持 HTML 模式。
+====
+
+[[using-thtext-and-externalizing-text]]
+=== 使用 th:text 并外部化文本
+
+外部化文本是从模板文件中提取的模板代码的片段，它们可以保存在单独的文件（通常是 `.properties` 文件）中，并且可以很容易地替换为用其他语言编写的等效的文本（称为国际化或简单的 __i18n__） 。 文本的外部化片段通常称为“消息”。
+
+消息具有标识它们的键，你可以使用 `#{...}` 语法来指定消息的键：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:text="#{home.welcome}">Welcome to our grocery store!</p>
+----
+
+事实上，我们在这里可以发现 Thymeleaf 标准方言的两个不同的特点：
+
+* `th:text` 属性，它计算值表达式并将结果设置为所属标签的正文，有效地替换了我们在代码中看到 “Welcome to our grocery store!” 文本。
+* 使用__标准表达式语法__指定的 `#{home.welcome}` 表达式，它指出了 `th:text` 属性使用的文本应为键是 `home.welcome` 的消息，而不管我们正在使用哪一个 locale 来处理模板。
+
+现在，这个外部化文本在哪里？
+
+Thymeleaf 外部化文本的位置是完全可配置的，它取决于正在使用的 `org.thymeleaf.messageresolver.IMessageResolver` 实现。通常，将使用基于 `.properties` 文件的实现，但是我们也可以创建自己的实现，例如从数据库获取消息。
+
+但是，我们在初始化期间没有为我们的模板引擎指定消息解析器，这意味着我们的应用程序正在使用__标准消息解析器__，由 `org.thymeleaf.messageresolver.StandardMessageResolver` 实现。
+
+对于 `/WEB-INF/templates/home.html` 模板，标准消息解析器会去相同的目录下查找与模板具有相同名称的属性文件，例如
+
+* `/WEB-INF/templates/home_en.properties` 英语文本。
+* `/WEB-INF/templates/home_es.properties` 西班牙语语言文本。
+* `/WEB-INF/templates/home_pt_BR.properties` 葡萄牙语（巴西）语言文本。
+* `/WEB-INF/templates/home.properties` 默认文本（如果语言环境不匹配）。
+
+让我们看看我们的 `home_es.properties` 文件：
+
+[source,props,indent=0]
+[subs="verbatim,quotes"]
+----
+home.welcome=¡Bienvenido a nuestra tienda de comestibles!
+----
+
+这是我们使用 Thymeleaf 处理该模板所需的全部内容。让我们创建我们的 Home 控制器。
+
+[[contexts]]
+=== 上下文
+
+为了处理我们的模板，我们将创建一个实现了 `IGTVGController` 接口的 `HomeController` 类：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+public class HomeController implements IGTVGController {
+
+    public void process(
+            final HttpServletRequest request, final HttpServletResponse response,
+            final ServletContext servletContext, final ITemplateEngine templateEngine)
+            throws Exception {
+        
+        WebContext ctx = 
+                new WebContext(request, response, servletContext, request.getLocale());
+        
+        templateEngine.process("home", ctx, response.getWriter());
+        
+    }
+
+}
+----
+
+我们看到的第一件事是创建一个 __上下文__。 Thymeleaf 上下文是实现了 `org.thymeleaf.context.IContext` 接口的对象。 上下文应包含在变量映射中执行模板引擎所需的所有数据，并且还引用了外部化消息要使用的区域设置。
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+public interface IContext {
+
+    public Locale getLocale();
+    public boolean containsVariable(final String name);
+    public Set<String> getVariableNames();
+    public Object getVariable(final String name);
+    
+}
+----
+
+这个接口有一个专门的扩展，`org.thymeleaf.context.IWebContext`，它用于基于 ServletAPI 的 Web 应用程序（如 SpringMVC）。
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+public interface IWebContext extends IContext {
+    
+    public HttpServletRequest getRequest();
+    public HttpServletResponse getResponse();
+    public HttpSession getSession();
+    public ServletContext getServletContext();
+    
+}
+----
+
+Thymeleaf 核心库所有这些接口都提供了一个实现：
+
+* `org.thymeleaf.context.Context` 实现了 `IContext`
+* `org.thymeleaf.context.WebContext` 实现了 `IWebContext`
+
+正如你在控制器代码中看到的，我们使用的是 `WebContext`。 事实上我们必须使用它，因为 `ServletContextTemplateResolver` 要求我们使用实现了 `IWebContext` 的上下文。
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+WebContext ctx = new WebContext(request, response, servletContext, request.getLocale());
+----
+
+构造函数的四个参数中的只有三个是必需的，因为如果没有指定语言环境的话，将使用系统默认的语言环境（虽然你不应该让这种情况发生在实际的应用程序中）。
+
+有一些专门的表达式，我们能够从模板的 `WebContext` 中获取请求参数以及请求、会话和应用程序属性。 例如：
+
+* `${x}` 将返回 Thymeleaf 上下文中的变量 x 或作为一个__请求属性__。
+* `${param.x}` 将返回一个名为 x 的__请求参数__（可能是多值的）。
+* `${session.x}` 将返回一个名为 x 的__会话属性__。
+* `${application.x}` 将返回一个名为 x 的 __servlet 上下文属性__。
+
+[[executing-the-template-engine]]
+=== 执行模板引擎
+
+准备好了上下文对象，现在我们可以告诉模板引擎使用上下文来处理模板（通过其名称），并为它传递一个响应 writer 来写入响应：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+templateEngine.process("home", ctx, response.getWriter());
+----
+
+让我们看看使用西班牙语语言环境的结果：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!DOCTYPE html>
+
+<html>
+
+  <head>
+    <title>Good Thymes Virtual Grocery</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" type="text/css" media="all" href="/gtvg/css/gtvg.css" />
+  </head>
+
+  <body>
+  
+    <p>¡Bienvenido a nuestra tienda de comestibles!</p>
+
+  </body>
+
+</html>
+----
+
+[[more-on-texts-and-variables]]
+== 更多关于文本和变量的更多内容
+
+[[unescaped-text]]
+=== 非转义文本
+
+我们的最简单的版本的首页似乎已经准备好了，但是有一些我们没有考虑到的内容...如果我们有这样的消息怎么办？
+
+[source,props,indent=0]
+[subs="verbatim,quotes"]
+----
+home.welcome=Welcome to our <b>fantastic</b> grocery store!
+----
+
+如果我们像以前一样执行这个模板，我们将获得：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p>Welcome to our &lt;b&gt;fantastic&lt;/b&gt; grocery store!</p>
+----
+
+这不是我们所期望的，因为我们的 `<b>` 标签已被转义，因此它将在浏览器中显示。
+
+这是 `th:text` 属性的默认行为。 如果我们想要 Thymeleaf 尊重我们的 HTML 标签而不去转义它们，我们必须使用一个不同的属性：`th:utext`（用于 “非转义文本”）：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:utext="#{home.welcome}">Welcome to our grocery store!</p>
+----
+
+这将输出我们想要的的消息：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p>Welcome to our <b>fantastic</b> grocery store!</p>
+----
+
+[[using-and-displaying-variables]]
+=== 使用和显示变量
+
+现在让我们在我们的主页上添加一些内容。 例如，我们可能要在欢迎消息下方显示日期，如下所示：
+
+[source,literal,indent=0]
+[subs="verbatim,quotes"]
+----
+Welcome to our fantastic grocery store!
+
+Today is: 12 july 2010
+----
+
+首先，我们将必须修改我们的控制器，添加该日期作为上下文变量：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+public void process(
+            final HttpServletRequest request, final HttpServletResponse response,
+            final ServletContext servletContext, final ITemplateEngine templateEngine)
+            throws Exception {
+        
+    SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy");
+    Calendar cal = Calendar.getInstance();
+        
+    WebContext ctx = 
+            new WebContext(request, response, servletContext, request.getLocale());
+    ctx.setVariable("today", dateFormat.format(cal.getTime()));
+        
+    templateEngine.process("home", ctx, response.getWriter());
+        
+}
+----
+
+我们在上下文中添加了一个名为 `today` 的 `String` 变量，现在我们可以在模板中显示它：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<body>
+
+  <p th:utext="#{home.welcome}">Welcome to our grocery store!</p>
+
+  <p>Today is: <span th:text="${today}">13 February 2011</span></p>
+  
+</body>
+----
+
+如你所见，我们仍然使用了 `th:text` 属性（这是正确的，因为我们要替换标签的主体），但语法有点不同，这次不是一个 `#{...}` 表达式值，我们使用了一个 `${...}`。 这是一个**变量表达式**，它包含了一个使用 __OGNL（Object-Graph Navigation Language）__ 语言的表达式，它将在我们之前讨论的上下文变量映射上执行。
+
+`${today}` 表达式仅仅表示“获取名为 today 的变量”，但是这类表达式可能更复杂（例如 `${user.name}` 表示“获取名为 user 的变量，并调用其 `getName()` 方法”）。
+
+属性值有很多类型：消息，变量表达式...还有很多。 下一章将向我们展示所有这些类型。

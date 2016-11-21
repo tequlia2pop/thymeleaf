@@ -1,0 +1,181 @@
+[[listing-seed-starter-data]]
+= 列出种子启动器数据
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/thymeleafspring.html#listing-seed-starter-data
+
+我们的 `/WEB-INF/templates/seedstartermng.html` 页面首先显示的是当前存储的种子启动器的列表。为此，我们需要一些外部化消息和对一些模型属性的表达式求值。比如这个：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div class="seedstarterlist" th:unless="${#lists.isEmpty(allSeedStarters)}">
+    
+  <h2 th:text="#{title.list}">List of Seed Starters</h2>
+  
+  <table>
+    <thead>
+      <tr>
+        <th th:text="#{seedstarter.datePlanted}">Date Planted</th>
+        <th th:text="#{seedstarter.covered}">Covered</th>
+        <th th:text="#{seedstarter.type}">Type</th>
+        <th th:text="#{seedstarter.features}">Features</th>
+        <th th:text="#{seedstarter.rows}">Rows</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="sb : ${allSeedStarters}">
+        <td th:text="${{sb.datePlanted}}">13/01/2011</td>
+        <td th:text="#{|bool.${sb.covered}|}">yes</td>
+        <td th:text="#{|seedstarter.type.${sb.type}|}">Wireframe</td>
+        <td th:text="${#strings.arrayJoin(
+                           #messages.arrayMsg(
+                               #strings.arrayPrepend(sb.features,'seedstarter.feature.')),
+                           ', ')}">Electric Heating, Turf</td>
+        <td>
+          <table>
+            <tbody>
+              <tr th:each="row,rowStat : ${sb.rows}">
+                <td th:text="${rowStat.count}">1</td>
+                <td th:text="${row.variety.name}">Thymus Thymi</td>
+                <td th:text="${row.seedsPerCell}">12</td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+----
+
+这里有很多内容。让我们分别看看每个片段。
+
+首先，只有当存在种子启动器时才会显示这个部分。我们用 `th:unless` 属性和 `#lists.isEmpty(...)` 函数来实现。
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div class="seedstarterlist" th:unless="${#lists.isEmpty(allSeedStarters)}">
+----
+
+请注意，像 `#lists` 这样的所有工具对象都可以在 Spring EL 表达式中使用，就像它们在标准方言的 OGNL 表达式中那样。
+
+接下来要看的是很多的国际化（外部化）文本，例如：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<h2 th:text="#{title.list}">List of Seed Starters</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th th:text="#{seedstarter.datePlanted}">Date Planted</th>
+      <th th:text="#{seedstarter.covered}">Covered</th>
+      <th th:text="#{seedstarter.type}">Type</th>
+      <th th:text="#{seedstarter.features}">Features</th>
+      <th th:text="#{seedstarter.rows}">Rows</th>
+      ...
+----
+
+这是一个 Spring MVC 应用程序，我们已经在我们的 Spring 配置中定义了一个 `MessageSource` bean（`MessageSource` 对象是 Spring MVC 管理外部化文本的标准方式）：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+@Bean
+public ResourceBundleMessageSource messageSource() {
+    ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+    messageSource.setBasename("Messages");
+    return messageSource;
+}
+----
+
+...并且 `basename` 属性指定了会查找类路径中具类似 `Messages_es.properties` 或 `Messages_en.properties` 的文件。让我们来看看西班牙语版本：
+
+[source,props,indent=0]
+[subs="verbatim,quotes"]
+----
+title.list=Lista de semilleros
+
+date.format=dd/MM/yyyy
+bool.true=sí
+bool.false=no
+
+seedstarter.datePlanted=Fecha de plantación
+seedstarter.covered=Cubierto
+seedstarter.type=Tipo
+seedstarter.features=Características
+seedstarter.rows=Filas
+
+seedstarter.type.WOOD=Madera
+seedstarter.type.PLASTIC=Plástico
+
+seedstarter.feature.SEEDSTARTER_SPECIFIC_SUBSTRATE=Sustrato específico para semilleros
+seedstarter.feature.FERTILIZER=Fertilizante
+seedstarter.feature.PH_CORRECTOR=Corrector de PH
+----
+
+在表格的第一列中，我们将显示种子启动器准备的日期。但是我们将以 `DateFormatter` 定义的方式**显示它的格式**。为了做到这一点，我们将使用双括号语法（`${{...}}`），它将自动应用 Spring 的转换服务（包括了我们在配置时注册的 `DateFormatter`）。
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<td th:text="${{sb.datePlanted}}">13/01/2011</td>
+----
+
+接下来显示种子启动器容器是否被覆盖，这里通过字面值替换表达式来将 bean 的布尔属性值转换为国际化的 "yes" 或 "no"：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<td th:text="#{|bool.${sb.covered}|}">yes</td>
+----
+
+现在我们要显示种子启动器容器的类型。Type 是一个带有两个值的 java 枚举（`WOOD` 和 `PLASTIC`），这就是为什么我们在 `Messages` 文件中定义了两个属性 `seedstarter.type.WOOD` 和 `seedstarter.type.PLASTIC`。
+
+但是为了获得类型的国际化名称，我们将需要添加 `seedstarter.type`。通过表达式生成前缀到枚举值这个结果，然后我们将使用它作为消息的键：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<td th:text="#{|seedstarter.type.${sb.type}|}">Wireframe</td>
+----
+
+此列表中最困难的部分是__功能__一列。 在功能列中要显示容器的所有功能 - 它以 `Feature` 枚举数组的形式出现，用逗号分隔，例如 “Electric Heating, Turf”。
+
+注意，这是特别困难的，因为这些枚举值也需要外部化，就像我们对类型外部化那样。然后流程为：
+
+* 在 `features` 数组的所有元素前添加相应的前缀。
+* 根据从步骤 1 获得与所有键值获得对应的外部化消息。
+* 将步骤 2 中获得的所有消息，使用逗号作为分隔符，连接为一个字符串。
+
+为了实现这一点，我们创建以下代码：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<td th:text="${#strings.arrayJoin(
+                   #messages.arrayMsg(
+                       #strings.arrayPrepend(sb.features,'seedstarter.feature.')),
+                   ', ')}">Electric Heating, Turf</td>
+----
+
+事实上列表的最后一列相当简单。即使它有一个嵌套的表来显示容器中每行的内容：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<td>
+  <table>
+    <tbody>
+      <tr th:each="row,rowStat : ${sb.rows}">
+        <td th:text="${rowStat.count}">1</td>
+        <td th:text="${row.variety.name}">Thymus Thymi</td>
+        <td th:text="${row.seedsPerCell}">12</td>
+      </tr>
+    </tbody>
+  </table>
+</td>
+----

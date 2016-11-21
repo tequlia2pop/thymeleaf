@@ -1,0 +1,113 @@
+[[validation-and-error-messages]]
+= 验证和错误消息
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/thymeleafspring.html#validation-and-error-messages
+
+我们的大多数表单需要显示验证消息，通知用户他犯了什么错误。
+
+Thymeleaf 为此提供了一些工具：`#fields` 对象中的几个函数，`th:errors` 和 `th:errorclass` 属性。
+
+[[field-errors]]
+== 字段错误
+
+让我们看看如何在字段中设置一个特定的 CSS 类，如果它有一个错误：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="text" th:field="*{datePlanted}" 
+                   th:class="${#fields.hasErrors('datePlanted')}? fieldError" />
+----
+
+如您所见，`#fields.hasErrors(...)` 函数接收字段表达式作为参数（`datePlanted`），并返回一个布尔值，告诉该字段是否存在任何验证错误。
+
+我们还可以获取该字段的所有错误并对其进行迭代：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<ul>
+  <li th:each="err : ${#fields.errors('datePlanted')}" th:text="${err}" />
+</ul>
+----
+
+不使用迭代，我们也可以使用 `th:errors` 这个专门的属性来构建一个包含指定选择器的所有错误的列表，以 `<br/>` 分隔：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="text" th:field="*{datePlanted}" />
+<p th:if="${#fields.hasErrors('datePlanted')}" th:errors="*{datePlanted}">Incorrect date</p>
+----
+
+[[simplifying-error-based-css-styling-therrorclass]]
+=== 简化基于错误的 CSS 样式：th:errorclass
+
+我们在上面看到的例子，__如果一个字段有错误，会为其表单 input 设置一个表示错误的 CSS 类__，这是很常见的，Thymeleaf 提供了一个特定的属性来准确地实现该功能：`th:errorclass`。
+
+`th:errorclass` 应用于表单字段标签（input，select，textarea ...），如果一个字段有任何的错误，它将从标签中现有的 `name` 或 `th:field` 属性读取要检查的字段名称，然后将指定的 CSS 类追加到标签上。
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="text" th:field="*{datePlanted}" class="small" th:errorclass="fieldError" />
+----
+
+如果 `datePlanted` 有错误，这将渲染为：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="text" id="datePlanted" name="datePlanted" value="2013-01-01" class="small fieldError" />
+----
+
+[[all-errors]]
+== 所有错误
+
+如果我们想要显示表单中的所有错误怎么办？我们只需要使用带有 `'*'` 或 `'all'` 常量（这是等价的）的 `#fields.hasErrors(...)` 和 `#fields.errors(...)` 方法去查询即可：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<ul th:if="${#fields.hasErrors('*')}">
+  <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Input is incorrect</li>
+</ul>
+----
+
+如上面的例子，我们可以获得所有的错误并迭代它们...
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<ul>
+  <li th:each="err : ${#fields.errors('*')}" th:text="${err}" />
+</ul>
+----
+
+...以及建立一个以 `<br />` 分隔的列表：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:if="${#fields.hasErrors('all')}" th:errors="*{all}">Incorrect date</p>
+----
+
+最后注意，`#fields.hasErrors('*')` 相当于 `#fields.hasAnyErrors()`，`#fields.errors('*')` 相当于 `#fields.allErrors()`。 你可以使用喜欢的语法：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:if="${#fields.hasAnyErrors()}">
+  <p th:each="err : ${#fields.allErrors()}" th:text="${err}">...</p>
+</div>
+----
+
+[[global-errors]]
+== 全局错误
+
+[[displaying-errors-outside-forms]]
+== 在表单外部显示错误
+
+[[rich-error-objects]]
+== Rich error objects

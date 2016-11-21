@@ -1,0 +1,11 @@
+[[preface]]
+= 前言
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/thymeleafspring.html#preface
+
+本教程介绍了 Thymeleaf 如何与 Spring 框架集成，特别是（但不仅仅是）Spring MVC。
+
+请注意，Thymeleaf 已经集成了 Spring 框架的 3.x 和 4.x 版本，由两个独立的库（称为 `thymeleaf-spring3` 和 `thymeleaf-spring4`）提供。 这些库打包在单独的 `.jar` 文件（`thymeleaf-spring3-{version}.jar` 和 `thymeleaf-spring4-{version}.jar`）中，需要其添加到类路径中才能在应用程序中使用 Thymeleaf 的 Spring 集成。
+
+本教程中的代码示例和示例应用程序使用 **Spring 4.x** 及其对应的 Thymeleaf 集成，但是本文的内容也适用于 Spring 3.x. 如果你的应用程序使用的是 Spring 3.x，你所要做的就是在代码示例中用 `org.thymeleaf.spring3` 包去替换 `org.thymeleaf.spring4` 包。

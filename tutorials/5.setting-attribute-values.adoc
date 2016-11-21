@@ -1,0 +1,185 @@
+[[setting-attribute-values]]
+= Setting Attribute Values
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#setting-attribute-values
+
+本章将介绍在标记中如何设置（或修改）属性的值。
+
+[[setting-the-value-of-any-attribute]]
+== 设置任意属性的值
+
+加入我们的网站要发布通讯，我们希望我们的用户能够订阅它，所以我们创建一个具有表单的 `/WEB-INF/templates/subscribe.html` 模板：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<form action="subscribe.html">
+  <fieldset>
+    <input type="text" name="email" />
+    <input type="submit" value="Subscribe!" />
+  </fieldset>
+</form>
+----
+
+和 Thymeleaf 一样，这个模板起初更像一个静态原型，而不是一个 Web 应用程序的模板。首先，表单的 `action` 属性静态地链接到模板文件本身，以便没有有用的 URL 重写的地方。第二，提交按钮中的 `value` 属性会显示英语文本，但是我们希望它能够被国际化。
+
+然后输入 `th:attr` 属性，它能够更改所设置的标签的属性值：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<form action="subscribe.html" th:attr="action=@{/subscribe}">
+  <fieldset>
+    <input type="text" name="email" />
+    <input type="submit" value="Subscribe!" th:attr="value=#{subscribe.submit}"/>
+  </fieldset>
+</form>
+----
+
+这个概念是相当直接的：`th:attr` 使用一个表达式为属性赋值。创建了相应的控制器和消息文件后，处理此文件的结果将是：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<form action="/gtvg/subscribe">
+  <fieldset>
+    <input type="text" name="email" />
+    <input type="submit" value="¡Suscríbe!"/>
+  </fieldset>
+</form>
+----
+
+除了新的属性值，您还可以看到应用上下文名称已自动地为 URL 基础地址添加了 `/gtvg/subscribe` 前缀，如上一章所述。
+
+但是如果我们想一次设置多个属性呢？ XML 规则不允许在标签中设置一个属性两次，因此 `th:attr` 将使用以逗号分隔的分配列表，如：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<img src="../../images/gtvglogo.png" 
+     th:attr="src=@{/images/gtvglogo.png},title=#{logo},alt=#{logo}" />
+----
+
+给定所需的消息文件，这将输出：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<img src="/gtgv/images/gtvglogo.png" title="Logo de Good Thymes" alt="Logo de Good Thymes" />
+----
+
+[[setting-value-to-specific-attributes]]
+== 为特定属性设置值
+
+现在，你可能会想到像：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="submit" value="Subscribe!" th:attr="value=#{subscribe.submit}"/>
+----
+
+...是相当丑陋的一块标签。在属性值中指定赋值可能非常实用，但如果您必须始终这么做的话，它不是创建模板的最优雅的方式。
+
+Thymeleaf 同意这一点，这就是为什么 `th:attr` 几乎不用于模板。通常，你将使用其他 `th:*` 属性，它的任务是设置特定的标签属性（而不只是r任意属性，如 `th:attr` 那样）。
+
+例如，要设置 `value属性`，请使用 `th:value`：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="submit" value="Subscribe!" th:value="#{subscribe.submit}"/>
+----
+
+这看起来好多了！让我们尝试对 `from` 标签中的 `action` 属性执行相同的操作：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<form action="subscribe.html" th:action="@{/subscribe}">
+----
+
+你还记得之前那些我们放在 `home.html` 中的 `th:href` 吗？它们正是这种相同种类的属性：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<li><a href="product/list.html" th:href="@{/product/list}">Product List</a></li>
+----
+
+有很多这样的属性，每个属性都对应一个特定的 HTML5 属性：
+
+|===
+| | | 
+
+| th:abbr| th:accept| th:accept-charset
+| th:accesskey|	th:action| th:align
+| th:alt| th:archive| th:audio
+| th:autocomplete| th:axis| th:background
+| th:bgcolor| th:border| th:cellpadding
+| th:cellspacing| th:challenge| th:charset
+| th:cite| th:class| th:classid
+| th:codebase| th:codetype| th:cols
+| th:colspan| th:compact| th:content
+| th:contenteditable| th:contextmenu| th:data
+| th:datetime|	th:dir| th:draggable
+| th:dropzone| th:enctype| th:for
+| th:form| th:formaction| th:formenctype
+| th:formmethod| th:formtarget| th:fragment
+| th:frame| th:frameborder| th:headers
+| th:height| th:high| th:href
+| th:hreflang| th:hspace| th:http-equiv
+| th:icon| th:id| th:inline
+| th:keytype| th:kind| th:label
+| th:lang| th:list| th:longdesc
+| th:low| th:manifest| th:marginheight
+| th:marginwidth| th:max| th:maxlength
+| th:media| th:method| th:min
+| th:name| th:onabort| th:onafterprint
+| th:onbeforeprint| th:onbeforeunload| th:onblur
+| th:oncanplay| th:oncanplaythrough| th:onchange
+| th:onclick| th:oncontextmenu| th:ondblclick
+| th:ondrag| th:ondragend| th:ondragenter
+| th:ondragleave| th:ondragover| th:ondragstart
+| th:ondrop| th:ondurationchange| th:onemptied
+| th:onended| th:onerror| th:onfocus
+| th:onformchange| th:onforminput| th:onhashchange
+| th:oninput| th:oninvalid| th:onkeydown
+| th:onkeypress| th:onkeyup| th:onload
+| th:onloadeddata| th:onloadedmetadata| th:onloadstart
+| th:onmessage| th:onmousedown| th:onmousemove
+| th:onmouseout| th:onmouseover| th:onmouseup
+| th:onmousewheel| th:onoffline| th:ononline
+| th:onpause| th:onplay| th:onplaying
+| th:onpopstate| th:onprogress| th:onratechange
+| th:onreadystatechange| th:onredo| th:onreset
+| th:onresize| th:onscroll| th:onseeked
+| th:onseeking| th:onselect| th:onshow
+| th:onstalled| th:onstorage| th:onsubmit
+| th:onsuspend| th:ontimeupdate| th:onundo
+| th:onunload| th:onvolumechange| th:onwaiting
+| th:optimum| th:pattern| th:placeholder
+| th:poster| th:preload| th:radiogroup
+| th:rel| th:rev| th:rows
+| th:rowspan| th:rules| th:sandbox
+| th:scheme| th:scope| th:scrolling
+| th:size| th:sizes| th:span
+| th:spellcheck| th:src| th:srclang
+| th:standby| th:start| th:step
+| th:style| th:summary| th:tabindex
+| th:target| th:title| th:type
+| th:usemap| th:value| th:valuetype
+| th:vspace| th:width| th:wrap
+| th:xmlbase| th:xmllang| th:xmlspace
+|===
+
+== Setting more than one value at a time
+
+== Appending and prepending
+
+== Fixed-value boolean attributes
+
+== Setting the value of any attribute (default attribute processor)
+
+== Support for HTML5-friendly attribute and element names

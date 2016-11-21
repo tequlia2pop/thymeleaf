@@ -1,0 +1,513 @@
+[[standard-expression-syntax]]
+= Standard Expression Syntax
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#standard-expression-syntax
+
+我们将在我们的虚拟杂货店的开发中稍作休息，以了解 Thymeleaf 标准方言中最重要的部分之一：Thymeleaf 标准表达式语法。
+
+我们已经看过了以下语法表示的两种类型的有效属性值：消息和变量表达式：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:utext="#{home.welcome}">Welcome to our grocery store!</p>
+
+<p>Today is: <span th:text="${today}">13 february 2011</span></p>
+----
+
+但是还有更多类型的表达式，我们已经知道的表达式也有更有趣的细节。首先，让我们看看标准表达式功能的快速摘要：
+
+* 简单表达式：
+** 变量表达式：`${...}`
+** 选择变量表达式：`*{...}`
+** 消息表达式：`#{...}`
+** 链接 URL 表达式：`@{...}`
+** 片段表达式：`~{...}`
+
+* 文字
+** 文本文字：`'one text'`，`'Another one!'`，...
+** 数字文字：`0`，`34`，`3.0`，`12.3`，...
+** 布尔文字：`true`，`false`
+** 空字符：`null`
+** 文字标记：`one`，`sometext`，`main`，...
+
+* 文本操作：
+** 字符串连接：`+`
+** 字面值替换：`|The name is ${name}|`
+
+* 算术运算：
+** 二元运算符：`+`，`-`，`*`，`/`，`%`
+** 减号（一元运算符）： `-`
+
+* 布尔运算：
+** 二元运算符：`and`，`or`
+** 布尔否定（一元运算符）：`|`，`not`
+
+* 比较和相等：
+** 比较器：`>`，`<`，`>=`，`<=`（`gt`，`lt`，`ge`，`le`）
+** 相等运算符：`==`，`!=`（`eq`，`ne`）
+
+* 条件运算符：
+** If-then：`(if) ? (then)`
+** If-then-else：`(if) ? (then) : (else)`
+** 默认值：`(value) ?: (defaultvalue)`
+
+* 特殊标记：
+** 无操作：`_`
+
+所有这些功能可以组合和嵌套：
+
+[source,literal,indent=0]
+[subs="verbatim,quotes"]
+----
+'User is of type ' + (${user.isAdmin()} ? 'Administrator' : (${user.type} ?: 'Unknown'))
+----
+
+[[messages]]
+== 消息
+
+正如我们所知道的，`#{...}` 消息表达式允许我们将标签的正文链接到外部的消息文本：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:utext="#{home.welcome}">Welcome to our grocery store!</p>
+----
+
+[source,props,indent=0]
+[subs="verbatim,quotes"]
+----
+home.welcome=¡Bienvenido a nuestra tienda de comestibles!
+----
+
+但是有一个方面我们还没有想到：如果消息文本不是完全静态的会发生什么？ 例如，如果我们的应用程序在所有时候都清楚访问网站的用户，那么我们想通过名字向他们打招呼？
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p>¡Bienvenido a nuestra tienda de comestibles, John Apricot!</p>
+----
+
+这意味着我们需要向消息中添加一个参数。 像这样：
+
+[source,props,indent=0]
+[subs="verbatim,quotes"]
+----
+home.welcome=¡Bienvenido a nuestra tienda de comestibles, {0}!
+----
+
+参数根据 `java.text.MessageFormat` 标准语法指定，这意味着您可以按照 API 文档中为这些类指定的数字和日期来设置格式。
+
+为了为我们的参数指定一个值，并给出一个名为 `user` 的 HTTP 会话属性，那么：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:utext="#{home.welcome(${session.user.name})}">
+  Welcome to our grocery store, Sebastian Pepper!
+</p>
+----
+
+可以指定几个参数，用逗号分隔。 实际上，消息的键本身可以来自一个变量：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:utext="#{${welcomeMsgKey}(${session.user.name})}">
+  Welcome to our grocery store, Sebastian Pepper!
+</p>
+----
+
+[[variables]]
+== 变量
+
+我们已经提到了 `${...}` 表达式实际上是在上下文中包含的变量映射上执行的 OGNL（对象图导航语言）表达式。
+
+====
+有关 OGNL 语法和功能的详细信息，请阅读 http://commons.apache.org/ognl/[OGNL 语言指南]
+
+在启用 Spring MVC 的应用程序中，OGNL 将被 **SpringEL** 替代，但是两者的语法非常相似（实际上，对于大多数常见情况完全相同）。
+====
+
+从 OGNL 的语法，我们知道下面的表达式：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p>Today is: <span th:text="${today}">13 february 2011</span>.</p>
+----
+
+...其实等同于：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+ctx.getVariable("today");
+----
+
+但 OGNL 允许我们创建更强大的表达式，就像下面这样：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p th:utext="#{home.welcome(${session.user.name})}">
+  Welcome to our grocery store, Sebastian Pepper!
+</p>
+----
+
+...通过执行以下操作获取用户名：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+((User) ctx.getVariable("session").get("user")).getName();
+----
+
+但是 getter 方法导航只是 OGNL 的功能之一。 让我们看看更多：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+/*
+ * 使用点(.)访问属性。 相当于调用属性的 getter 方法。
+ */
+${person.father.name}
+
+/*
+ * 也可以这样访问属性：通过使用括号([])，并将属性的名称作为变量或用单引号括起来。
+ */
+${person['father']['name']}
+
+/*
+ * 如果对象是一个 map，点和括号语法将等效于对其 get(...) 方法执行调用。
+ */
+${countriesByCode.ES}
+${personsByName['Stephen Zucchini'].age}
+
+/*
+ * 对数组或集合的索引访问也使用括号执行，在索引上不必使用引号。
+ */
+${personsArray[0].name}
+
+/*
+ * 可以调用方法，甚至带上参数。
+ */
+${person.createCompleteName()}
+${person.createCompleteNameWithSeparator('-')}
+----
+
+[[expression-basic-objects]]
+=== 表达式的基本对象
+
+在上下文变量上计算 OGNL 表达式时，可以使用一些对象以实现更高的灵活性。 这些对象将 可以以符号 `#` 作为开始来引用这些对象（根据 OGNL 标准）：
+
+* `#ctx`：上下文对象。
+* `#vars`：上下文变量。
+* `#locale`：上下文语言环境。
+* `#request`：（仅在 Web 上下文中）`HttpServletRequest` 对象。
+* `#response`：（仅在 Web 上下文中）`HttpServletResponse` 对象。
+* `#session`：（仅在 Web 上下文中）`HttpSession` 对象。
+* `#servletContext`：（仅在 Web 上下文中）`ServletContext` 对象。
+
+所以我们可以这样做：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+Established locale country: <span th:text="${#locale.country}">US</span>.
+----
+
+您可以在 <<appendix-a-expression-basic-objects>> 中阅读这些对象的完整参考。
+
+[[expression-utility-objects]]
+=== 表达式的工具对象
+
+除了这些基本对象，Thymeleaf 将为我们提供一组实用的对象，它们将帮助我们在表达式中执行常见的任务。
+
+* `#execInfo`：有关正在处理的模板的信息。
+* `#messages`：在变量表达式中获取外部化消息的方法，与使用  #{…} 语法获得外部消息的方法相同。
+* `#uris`：转义部分 URLs/URIs 的方法
+* `#conversions`：执行已配置的__转换服务（conversion service）__的方法（如果有的话）。
+* `#dates`：`java.util.Date` 对象的方法：格式化，提取组件等。
+* `#calendars`：类似于 `#dates`，但是用于 `java.util.Calendar` 对象。
+* `#numbers`：用于格式化数值对象的方法。
+* `#strings`：`String` 对象的方法：contains，startsWith，prepending/appending 等。
+* `#objects`：一般对象的方法。
+* `#bools`：计算布尔值的方法。
+* `#arrays`：数组的方法。
+* `#lists`：列表的方法。
+* `#sets`：set 的方法。
+* `#maps`：map 的方法。
+* `#aggregates`：用于在数组或集合上创建聚合的方法。
+* `#ids`：处理可能重复的 id 属性的方法（例如，作为迭代的结果）。
+
+您可以在 <<appendix-b-expression-utility-objects>> 中查看所有这些工具对象提供的功能。
+
+[[reformatting-dates-in-our-home-page]]
+=== 在我们的首页中重新格式化日期
+
+现在我们知道了这些工具对象，我们可以使用它们来修改我们在主页中显示日期的方式。 而不是在我们的 `HomeController` 中这样做：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy");
+Calendar cal = Calendar.getInstance();
+
+WebContext ctx = new WebContext(request, servletContext, request.getLocale());
+ctx.setVariable("today", dateFormat.format(cal.getTime()));
+
+templateEngine.process("home", ctx, response.getWriter());
+----
+
+...我们可以这样做：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy");
+Calendar cal = Calendar.getInstance();
+
+WebContext ctx = new WebContext(request, servletContext, request.getLocale());
+ctx.setVariable("today", dateFormat.format(cal.getTime()));
+
+templateEngine.process("home", ctx, response.getWriter());
+----
+
+...然后在视图层中中执行日期的格式化：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p>
+  Today is: <span th:text="${#calendars.format(today,'dd MMMM yyyy')}">13 May 2011</span>
+</p>
+----
+
+[[expressions-on-selections-asterisk-syntax]]
+== 选择表达式（星号语法）
+
+不仅可以将变量表达式写为 `${...}`，还可以写为 `*{...}`。
+
+有一个重要的区别：星号语法在__选定的对象__上计算表达式，而不是整个上下文。 也就是说，只要没有选定的对象，美元和星号语法做的完全相同。
+
+什么是选定的对象？ 使用 `th:object` 属性的表达式的结果。 让我们在用户资料（`userprofile.html`）页面中使用 `th:object`：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:object="${session.user}">
+    <p>Name: <span th:text="*{firstName}">Sebastian</span>.</p>
+    <p>Surname: <span th:text="*{lastName}">Pepper</span>.</p>
+    <p>Nationality: <span th:text="*{nationality}">Saturn</span>.</p>
+</div>
+----
+
+这完全等同于：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div>
+  <p>Name: <span th:text="${session.user.firstName}">Sebastian</span>.</p>
+  <p>Surname: <span th:text="${session.user.lastName}">Pepper</span>.</p>
+  <p>Nationality: <span th:text="${session.user.nationality}">Saturn</span>.</p>
+</div>
+----
+
+当然可以混合使用美元符号和星号：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:object="${session.user}">
+  <p>Name: <span th:text="*{firstName}">Sebastian</span>.</p>
+  <p>Surname: <span th:text="${session.user.lastName}">Pepper</span>.</p>
+  <p>Nationality: <span th:text="*{nationality}">Saturn</span>.</p>
+</div>
+----
+
+当选定了对象时，在美元表达式中可以使用`#object` 表达式变量来引用所选对象。 
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:object="${session.user}">
+  <p>Name: <span th:text="${#object.firstName}">Sebastian</span>.</p>
+  <p>Surname: <span th:text="${session.user.lastName}">Pepper</span>.</p>
+  <p>Nationality: <span th:text="*{nationality}">Saturn</span>.</p>
+</div>
+----
+
+如上所述，如果没有执行对象选择，则美元和星号语法是等效的。
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div>
+  <p>Name: <span th:text="*{session.user.name}">Sebastian</span>.</p>
+  <p>Surname: <span th:text="*{session.user.surname}">Pepper</span>.</p>
+  <p>Nationality: <span th:text="*{session.user.nationality}">Saturn</span>.</p>
+</div>
+----
+
+[[link-urls]]
+== 链接 URL
+
+URL 是 Web 应用程序模板中的一等公民，由于其重要性，__Thymeleaf 标准方言__为它们设计了一个特殊的语法，@ 语法：`@{...}`
+
+有不同类型的 URL：
+
+* 绝对 URL：`http://www.thymeleaf.org`
+* 相对 URL，可以是：
+** 页面相对的：`user/login.html`
+** 上下文相对的：`/itemdetails?id=3`（自动添加服务器中的上下文名称）
+** 服务器相对的：`~/billing/processInvoice`（允许在同一服务器中另一个上下文（等于应用程序）中调用 URL）。
+** 协议相对 URL：`//code.jquery.com/jquery-2.0.3.min.js`
+`
+通过 `org.thymeleaf.linkbuilder.ILinkBuilder` 接口的实现来完成这些表达式的真正的处理，以及将它们转换为 URL 并输出。`ILinkBuilder` 实现需要注册到正在使用的 `ITemplateEngine` 对象中。
+
+默认情况下注册了一个该接口的实现类 `org.thymeleaf.linkbuilder.StandardLinkBuilder`，这对于脱机（非 Web）以及基于 Servlet API 的 Web 场景都是足够的。 其他场景（例如与非 ServletAPI Web 框架的集成）则可能需要链路构建器接口的特定实现。
+
+让我们使用这个新的语法。使用 `th:href` 属性：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!-- Will produce 'http://localhost:8080/gtvg/order/details?orderId=3' (plus rewriting) -->
+<a href="details.html" 
+   th:href="@{http://localhost:8080/gtvg/order/details(orderId=${o.id})}">view</a>
+
+<!-- Will produce '/gtvg/order/details?orderId=3' (plus rewriting) -->
+<a href="details.html" th:href="@{/order/details(orderId=${o.id})}">view</a>
+
+<!-- Will produce '/gtvg/order/3/details' (plus rewriting) -->
+<a href="details.html" th:href="@{/order/{orderId}/details(orderId=${o.id})}">view</a>
+----
+
+有些事情要注意：
+
+* `th:href` 是一个修饰符属性：一旦处理后，它将计算出要使用的链接 URL，并将该值设置为 `<a>` 标签的 `href` 属性。
+* 我们可以为 URL 参数使用表达式（正如你在 `orderId=${o.id}` 中看到的）。所需的 URL 参数编码操作也将自动执行。
+* 如果需要几个参数，它们之间用逗号分隔：`@{/order/process(execId=${execId},execType='FAST')}`
+* URL 路径中也允许使用变量模板：`@{/order/{orderId}/details(orderId=${orderId})}`
+* 以 `/` 开头的相对 URL（例如：`/order/details`）将自动添加应用程序上下文名称作为前缀。
+* 如果 Cookie 未启用或尚未知晓，则可以在相关 URL 中添加 `";jsessionid=..."` 后缀，以便保留会话。这称为 __URL 重写__，Thymeleaf 允许您通过对每个 URL 使用 Servlet API 的 `response.encodeURL(...)` 机制插入自己的重写过滤器。
+* `th:href` 属性允许我们（可选地）在模板中保留一个工作的静态 `href` 属性，以便在浏览器直接打开原型时模板链接仍然可以导航。
+
+与消息语法（`#{...}`）的情况一样，URL 基址也可以是另一个表达式的计算结果：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<a th:href="@{${url}(orderId=${o.id})}">view</a>
+<a th:href="@{'/details/'+${user.login}(orderId=${o.id})}">view</a>
+----
+
+[[a-menu-for-our-home-page]]
+=== 主页的菜单
+
+现在我们知道如何创建链接 URL，在我们的主页中为网站中的其他页面添加一个小菜单怎么样？
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<p>Please select an option</p>
+<ol>
+  <li><a href="product/list.html" th:href="@{/product/list}">Product List</a></li>
+  <li><a href="order/list.html" th:href="@{/order/list}">Order List</a></li>
+  <li><a href="subscribe.html" th:href="@{/subscribe}">Subscribe to our Newsletter</a></li>
+  <li><a href="userprofile.html" th:href="@{/userprofile}">See User Profile</a></li>
+</ol>
+----
+
+[[server-root-relative-urls]]
+=== 相对服务器根的 URL
+
+可以使用附加语法来创建相对服务器根（而不是相对上下文根）的 URL，以链接到同一服务器中的不同上下文。 这些URL将被指定为类似 `@{~/path/to/something}` 的样式。
+
+[[fragments]]
+== 片段
+
+片段表达式是一种表示标记片段并将其移动到模板周围的简单方式。 这允许我们复制片段，将它们作为参数传递给其他模板，等等。
+
+最常见的用法是使用 `th:insert` 或 `th:replace`（更多的介绍在后面的部分中）：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:insert="~{commons :: main}">...</div>
+----
+
+但是它们可以在任何地方使用，就像任何其他变量一样：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div th:with="frag=~{footer :: #main/text()}">
+  <p th:insert="${frag}">
+</div>
+----
+
+在本教程的后面，有一个专门介绍模板布局的部分，包含了对片段表达式的更深入的解释。
+
+== Literals
+
+[[appending-texts]]
+== 添加文本
+
+文本，无论它们是字面值还是变量或消息表达式的计算结果，都可以使用 `+` 运算符轻松地添加它们：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<span th:text="'The name of the user is ' + ${user.name}">
+----
+
+[[literal-substitutions]]
+== 字面值替换
+
+字面值替换允许对包含变量值的字符串进行简单的格式化，而无需使用 '...' + '...' 来添加字面值。
+
+必须使用垂直线（|）包围这些替换，如：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<span th:text="|Welcome to our application, ${user.name}!|">
+----
+
+它相当于：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<span th:text="'Welcome to our application, ' + ${user.name} + '!'">
+----
+
+字面值替换可以与其他类型的表达式组合：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<span th:text="${onevar} + ' ' + |${twovar}, ${threevar}|">
+----
+
+====
+在 `|...|` 字面值替换中只允许使用变量表达式（`${...}`）。不支持其他的字面值（'...'），布尔/数字标记，条件表达式等。
+====
+
+== Arithmetic operations
+
+== Comparators and Equality
+
+== Conditional expressions
+
+== Default expressions (Elvis operator)
+
+== The No-Operation token
+
+== Data Conversion / Formatting
+
+== Preprocessing

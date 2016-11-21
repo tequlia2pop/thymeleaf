@@ -1,0 +1,66 @@
+[[creating-a-form]]
+= 创建表单
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/thymeleafspring.html#creating-a-form
+
+[[handling-the-command-object]]
+== 处理命令对象
+
+__命令对象（Command object）__ 是 Spring MVC 提供的表单支持（form-backing） beans 的名字，这是表单字段的模型对象，它提供了 getter 和 setter 方法，框架将使用这些方法来建立和获取用户在浏览器端输入的值。
+
+Thymeleaf 要求在 `<form>` 标签中使用 `th:object` 属性来指定命令对象：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<form action="#" th:action="@{/seedstartermng}" th:object="${seedStarter}" method="post">
+    ...
+</form>
+----
+
+这与 `th:object` 的其他用法是一致的，但实际上这个特定的场景添加了一些限制，以便正确地与 Spring MVC 的基础设施集成：
+
+* form 标签中的 `th:object` 属性的值必须是指定了模型属性名称的变量表达式（`${...}`），不带属性导航。这意味着像 `${seedStarter}` 这样的表达式是有效的，但是 `${seedStarter.data}` 无效。
+* 在 `<form>` 标签中只能指定一个 `th:object` 属性。这与 HTML 表单不能嵌套的事实保持一致。
+
+[[inputs]]
+== Inputs
+
+现在让我们看看如何在表单中添加一个 input：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="text" th:field="*{datePlanted}" />
+----
+
+正如你所看到的，我们在这里引入一个新属性：`th:field`。这是集成 Spring MVC 的一个非常重要的功能，因为它执行了将 input 绑定到表单支持 bean 的属性绑定的所有繁重工作。你可以将其等同于 Spring MVC 的 JSP 标记库标签中的 `path` 属性。
+
+根据是否附加到 `<input>`，`<select>` 或 `<textarea>` 标签（并且还取决于 `<input>` 标签的具体类型），`th:field` 属性的行为有所不同。在这种情况下（`input[type=text]`），上面的代码行类似于：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<input type="text" id="datePlanted" name="datePlanted" th:value="*{datePlanted}" />
+----
+
+...但实际上它比上面的代码实现的东西还要多，因为 `th:field` 还将应用注册的 Spring 转换服务，包括我们之前看到的 `DateFormatter`（即使字段表达式不是使用双括号语法）。由于这一点，日期将显示正确的格式。
+
+`th:field` 属性的值必须是选择表达式（`*{...}`），这是有意义的，因为它们只能在表单支持 bean 上进行求值，而不是上下文变量（或 Spring MVC 术语中的模型属性）。
+
+与 `th:object` 类似，这些表达式可以包含属性导航（实际上，`<form:input>` JSP 标签的 path 属性支持所有的表达式）。
+
+注意 `th:field` 也支持 HTML5 引入的 `<input>` 元素的新类型，如 `<input type="datetime" ... />`, `<input type="color" ... />` 等，它会有效地添加对 Spring MVC 的完全的 HTML5 支持。
+
+[[checkbox-fields]]
+== Checkbox 字段
+
+[[radio-button-fields]]
+== Radio Button 字段
+
+[[dropdownlist-selectors]]
+== Dropdown/List selectors
+
+[[dynamic-fields]]
+== dynamic-fields

@@ -1,0 +1,82 @@
+[[the-springstandard-dialect]]
+= SpringStandard 方言
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/thymeleafspring.html#the-springstandard-dialect
+
+为了实现更容易和更好的集成，Thymeleaf 提供了一个方言，专门实现所有需要的功能，以正确地与 Spring 工作。
+
+这种特定的方言基于 Thymeleaf 标准方言，并在一个名为 `org.thymeleaf.spring4.dialect.SpringStandardDialect` 的类中实现，实际上它扩展自 `org.thymeleaf.standard.StandardDialect`。
+
+除了已经存在于标准方言中并因此继承的所有特征之外，SpringStandard 方言还引入了以下特定特征：
+
+* 使用 Spring 表达式语言（Spring EL 或 SpEL）作为变量表达式语言，而不是 OGNL。因此，所有的 `${...}` 和 `*{...}` 表达式将由 Spring 的表达式语言引擎来计算。还要注意，对 Spring EL 编译器的支持是可用的（Spring 4.2.4+）。
+* 使用 SpringEL 的语法访问应用程序上下文中的所有 bean：`${@myBean.doSomething()}`
+* 用于表单处理的新属性：`th:field`，`th:errors` 和 `th:errorclass`，还有一个 `th:object` 的新实现，允许将它用于选择表单命令对象。
+* 表达式对象和方法，`#themes.code(...)`，它等同于 `spring:theme` 这个 JSP 自定义标签。
+* 表达式对象和方法，`#mvc.uri(...)`，它等同于 `spring:mvcUrl(...)` 这个 JSP 自定义函数（仅在 Spring 4.1+ 中）。
+
+注意，大多数时候，__你不应该直接在一个普通的 `TemplateEngine` 对象中使用这个方言__将其作为其配置的一部分。除非你有非常具体的 Spring 集成需求，否则应该创建一个新的模板引擎类的实例，该类自动执行所有必需的配置步骤：`org.thymeleaf.spring4.SpringTemplateEngine`。
+
+一个 bean 配置的示例：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+@Bean
+public SpringResourceTemplateResolver templateResolver(){
+    // SpringResourceTemplateResolver 自动地与 Spring 自己的资源解析基础结构相集成，强烈推荐使用它。
+    SpringResourceTemplateResolver templateResolver = new SpringResourceTemplateResolver();
+    templateResolver.setApplicationContext(this.applicationContext);
+    templateResolver.setPrefix("/WEB-INF/templates/");
+    templateResolver.setSuffix(".html");
+    // HTML 是默认值，为了清楚起见，在此处添加它。
+    templateResolver.setTemplateMode(TemplateMode.HTML);
+    // 默认情况下，模板缓存为 true。 如果希望模板在修改时自动更新，请设置为 false。
+    templateResolver.setCacheable(true);
+    return templateResolver;
+}
+
+@Bean
+public SpringTemplateEngine templateEngine(){
+    // SpringTemplateEngine 自动应用 SpringStandardDialect，并启用了 Spring 自己的 MessageSource 消息解析机制。
+    SpringTemplateEngine templateEngine = new SpringTemplateEngine();
+    templateEngine.setTemplateResolver(templateResolver());
+    // 在 Spring 4.2.4 或更高版本上，启用 SpringEL 编译器可以加快大多数情况下的执行速度，
+    // 但是可能与特定情况不兼容（当一个模板中的表达式在不同数据类型之间重用时），所以为了实现更安全的向后兼容性，该标志默认为 “false”。
+    templateEngine.setEnableSpringELCompiler(true);
+    return templateEngine;
+}
+----
+
+或者，使用 Spring 基于 XML 的配置：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+<!-- SpringResourceTemplateResolver automatically integrates with Spring's own -->
+<!-- resource resolution infrastructure, which is highly recommended.          -->
+<bean id="templateResolver"
+       class="org.thymeleaf.templateresolver.SpringResourceTemplateResolver">
+  <property name="prefix" value="/WEB-INF/templates/" />
+  <property name="suffix" value=".html" />
+  <!-- HTML is the default value, added here for the sake of clarity.          -->
+  <property name="templateMode" value="HTML" />
+  <!-- Template cache is true by default. Set to false if you want             -->
+  <!-- templates to be automatically updated when modified.                    -->
+  <property name="cacheable" value="true" />
+</bean>
+    
+<!-- SpringTemplateEngine automatically applies SpringStandardDialect and      -->
+<!-- enables Spring's own MessageSource message resolution mechanisms.         -->
+<bean id="templateEngine"
+      class="org.thymeleaf.spring4.SpringTemplateEngine">
+  <property name="templateResolver" ref="templateResolver" />
+  <!-- Enabling the SpringEL compiler with Spring 4.2.4 or newer can speed up  -->
+  <!-- execution in most scenarios, but might be incompatible with specific    -->
+  <!-- cases when expressions in one template are reused across different data -->
+  <!-- ypes, so this flag is "false" by default for safer backwards            -->
+  <!-- compatibility.                                                          -->
+  <property name="enableSpringELCompiler" value="true" />
+</bean>
+----

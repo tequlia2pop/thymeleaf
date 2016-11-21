@@ -1,0 +1,52 @@
+[[more-on-configuration]]
+= More on Configuration
+Doc Writer <tequlia2pop@gmail.com>
+:toc: left
+:homepage: http://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html#using-texts
+
+== Template Resolvers
+
+[[message-resolvers]]
+== 消息解析器
+
+我们没有为我们的 Grocery 应用程序显式指定一个消息解析器实现，并且如前所述，这意味着所使用的实现是一个  `org.thymeleaf.messageresolver.StandardMessageResolver` 对象。
+
+`StandardMessageResolver` 是 `IMessageResolver` 接口的标准实现，但是如果需要的话，我们可以创建自己的消息解析器来适应我们的应用程序的特定需求。
+
+====
+Thymeleaf + Spring 集成包默认提供了一个 `IMessageResolver` 实现，它通过使用在 Spring 应用程序上下文中声明的 `MessageSource` bean，以标准的 Spring 方式来检索外部化消息。
+====
+
+[[standard-message-resolver]]
+=== 标准的消息解析器
+
+那么 `StandardMessageResolver` 如何查找在特定模板中请求的消息？
+
+如果模板名称为 `home`，并且位于 `/WEB-INF/templates/home.html` 中，并且请求的语言环境为 `gl_ES`，则此解析器将按以下顺序在以下文件中查找消息：
+
+* `/WEB-INF/templates/home_gl_ES.properties`
+* `/WEB-INF/templates/home_gl.properties`
+* `/WEB-INF/templates/home.properties`
+
+有关完整的消息解析机制如何工作的更多详细信息，请参阅 `StandardMessageResolver` 类的 JavaDoc 文档。
+
+[[configuring-message-resolvers]]
+=== 配置消息解析器
+
+如果我们想要将一个消息解析器（或多个）添加到模板引擎怎么办？ 简单：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+// For setting only one
+templateEngine.setMessageResolver(messageResolver);
+
+// For setting more than one
+templateEngine.addMessageResolver(messageResolver);
+----
+
+为什么我们要有多个消息解析器？ 具有与模板解析器相同的原因：消息解析器是有序的，如果第一个无法解析特定的消息，则将询问第二个，然后第三个，等等。
+
+== Conversion Services
+
+== Logging
