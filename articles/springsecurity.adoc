@@ -1,0 +1,162 @@
+= Thymeleaf + Spring Security 集成基础
+Doc Writer <tequlia2pop@gmail.com>
+:toc:
+:homepage: http://www.thymeleaf.org/doc/articles/springsecurity.html
+
+Written by José Miguel Samper <jmiguelsamper AT users.sourceforge.net>
+
+您切换到Thymeleaf，但你的登录和错误页面仍在使用JSP？ 在本文中，我们将看到如何配置您的Spring应用程序以使用Thymeleaf的登录和错误页面。
+
+这里所有的代码来自一个工作应用程序。 您可以从 https://github.com/thymeleaf/thymeleafexamples-springsecurity[其GitHub仓库] 查看或下载源代码。
+
+== 先决条件
+
+我们认为你熟悉Thymeleaf和Spring Security，你有一个使用这些技术的工作应用程序。 如果你不知道Spring Security，你可能有兴趣阅读 http://static.springsource.org/spring-security/site/reference.html[Spring Security文档]。
+
+== 登录页面
+
+使用Spring Security，您可以指定任何URL作为登录页面，如下所示：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+@Override
+protected void configure(final HttpSecurity http) throws Exception {
+    http
+        .formLogin()
+        .loginPage("/login.html")
+        .failureUrl("/login-error.html")
+      .and()
+        .logout()
+        .logoutSuccessUrl("/index.html");
+}
+----
+
+现在我们要在Spring控制器中匹配这些页面：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+@Controller
+public class MainController {
+
+  ...
+
+  // Login form
+  @RequestMapping("/login.html")
+  public String login() {
+    return "login.html";
+  }
+
+  // Login form with error
+  @RequestMapping("/login-error.html")
+  public String loginError(Model model) {
+    model.addAttribute("loginError", true);
+    return "login.html";
+  }
+
+}
+----
+
+注意，我们对两个页面使用相同的模板**login.html**，但是当有错误时，我们在模型中设置一个布尔属性。
+
+我们的**login.html**模板如下：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <title>Login page</title>
+  </head>
+  <body>
+    <h1>Login page</h1>
+    <p th:if="${loginError}" class="error">Wrong user or password</p>
+    <form th:action="@{/login.html}" method="post">
+      <label for="username">Username</label>:
+      <input type="text" id="username" name="username" autofocus="autofocus" /> <br />
+      <label for="password">Password</label>:
+      <input type="password" id="password" name="password" /> <br />
+      <input type="submit" value="Log in" />
+    </form>
+  </body>
+</html>
+----
+
+== 错误页面
+
+我们还可以基于Thymeleaf配置错误页面。 在这种情况下，Spring Security根本不涉及，我们应该简单地向我们的Spring配置添加一个ExceptionHandler：
+
+[source,java,indent=0]
+[subs="verbatim,quotes"]
+----
+@ControllerAdvice
+public class ErrorController {
+
+    private static Logger logger = LoggerFactory.getLogger(ErrorController.class);
+
+    @ExceptionHandler(Throwable.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public String exception(final Throwable throwable, final Model model) {
+        logger.error("Exception during execution of SpringSecurity application", throwable);
+        String errorMessage = (throwable != null ? throwable.getMessage() : "Unknown error");
+        model.addAttribute("errorMessage", errorMessage);
+        return "error";
+    }
+
+}
+----
+
+**error.html**模板可能如下所示：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Error page</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="css/main.css" th:href="@{/css/main.css}" />
+    </head>
+    <body th:with="httpStatus=${T(org.springframework.http.HttpStatus).valueOf(#response.status)}">
+        <h1 th:text="|${httpStatus} - ${httpStatus.reasonPhrase}|">404</h1>
+        <p th:utext="${errorMessage}">Error java.lang.NullPointerException</p>
+        <a href="index.html" th:href="@{/index.html}">Back to Home Page</a>
+    </body>
+</html>
+----
+
+请注意我们如何使用Spring的`HttpStatus`枚举，以获取有关已设置的响应状态的详细信息（在这种情况下将始终为`500`，但这允许我们在其他错误报告方案中使用此`error.html`）。
+
+== Spring Security 方言
+
+https://github.com/thymeleaf/thymeleaf-extras-springsecurity3[Spring Security 3集成模块]是相当于Spring安全标签库的Thymeleaf方言。
+
+我们在示例中使用此方言，以便打印记录的用户凭据并向不同角色显示不同的内容。
+
+当属性表达式求值为`true`时，`sec:authorize`属性渲染其内容：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+<div sec:authorize="isAuthenticated()">
+  This content is only shown to authenticated users.
+</div>
+<div sec:authorize="hasRole('ROLE_ADMIN')">
+  This content is only shown to administrators.
+</div>
+<div sec:authorize="hasRole('ROLE_USER')">
+  This content is only shown to users.
+</div>
+----
+
+`sec:authorize`属性用于打印记录的用户名和角色：
+
+[source,html,indent=0]
+[subs="verbatim,quotes"]
+----
+Logged user: <span sec:authentication="name">Bob</span>
+Roles: <span sec:authentication="principal.authorities">[ROLE_USER, ROLE_ADMIN]</span>
+----
