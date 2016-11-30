@@ -2,7 +2,10 @@
 
 官方网站 [在这儿](http://www.thymeleaf.org/)
 
+## Spring Security 集成
+
 * [Thymeleaf - Spring Security 集成模块](thymeleaf-extras-springsecurity.md)
+* [Thymeleaf + Spring Security 集成基础](articles/springsecurity.adoc)
 
 ## 官方教程
 
