@@ -43,7 +43,8 @@ public SpringTemplateEngine templateEngine(){
     SpringTemplateEngine templateEngine = new SpringTemplateEngine();
     templateEngine.setTemplateResolver(templateResolver());
     // 在 Spring 4.2.4 或更高版本上，启用 SpringEL 编译器可以加快大多数情况下的执行速度，
-    // 但是可能与特定情况不兼容（当一个模板中的表达式在不同数据类型之间重用时），所以为了实现更安全的向后兼容性，该标志默认为 “false”。
+    // 但是可能与特定情况不兼容（当一个模板中的表达式在不同数据类型之间重用时），
+    // 所以为了实现更安全的向后兼容性，该标志默认为 “false”。
     templateEngine.setEnableSpringELCompiler(true);
     return templateEngine;
 }
@@ -54,29 +55,25 @@ public SpringTemplateEngine templateEngine(){
 [source,java,indent=0]
 [subs="verbatim,quotes"]
 ----
-<!-- SpringResourceTemplateResolver automatically integrates with Spring's own -->
-<!-- resource resolution infrastructure, which is highly recommended.          -->
+<!-- SpringResourceTemplateResolver 自动地与 Spring 自己的资源解析基础结构相集成，强烈推荐使用它。 -->
 <bean id="templateResolver"
        class="org.thymeleaf.templateresolver.SpringResourceTemplateResolver">
   <property name="prefix" value="/WEB-INF/templates/" />
   <property name="suffix" value=".html" />
-  <!-- HTML is the default value, added here for the sake of clarity.          -->
+  <!-- HTML 是默认值，为了清楚起见，在此处添加它。 -->
   <property name="templateMode" value="HTML" />
-  <!-- Template cache is true by default. Set to false if you want             -->
-  <!-- templates to be automatically updated when modified.                    -->
+  <!-- 默认情况下，模板缓存为 true。 如果希望模板在修改时自动更新，请设置为 false。-->
   <property name="cacheable" value="true" />
 </bean>
     
-<!-- SpringTemplateEngine automatically applies SpringStandardDialect and      -->
-<!-- enables Spring's own MessageSource message resolution mechanisms.         -->
+<!-- SpringTemplateEngine 自动应用 SpringStandardDialect，-->
+<!-- 并启用了 Spring 自己的 MessageSource 消息解析机制。     -->
 <bean id="templateEngine"
       class="org.thymeleaf.spring4.SpringTemplateEngine">
   <property name="templateResolver" ref="templateResolver" />
-  <!-- Enabling the SpringEL compiler with Spring 4.2.4 or newer can speed up  -->
-  <!-- execution in most scenarios, but might be incompatible with specific    -->
-  <!-- cases when expressions in one template are reused across different data -->
-  <!-- ypes, so this flag is "false" by default for safer backwards            -->
-  <!-- compatibility.                                                          -->
+  <!-- 在 Spring 4.2.4 或更高版本上，启用 SpringEL 编译器可以加快大多数情况下的执行速度，-->
+  <!-- 但是可能与特定情况不兼容（当一个模板中的表达式在不同数据类型之间重用时），           -->
+  <!-- 所以为了实现更安全的向后兼容性，该标志默认为 “false”。                          -->
   <property name="enableSpringELCompiler" value="true" />
 </bean>
 ----
