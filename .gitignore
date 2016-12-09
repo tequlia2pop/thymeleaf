@@ -61,3 +61,13 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# =========================
+# Custom Files
+# =========================
+thymeleafexamples-gtvg/
+thymeleafexamples-petclinic/
+thymeleafexamples-springsecurity/
+thymeleafexamples-stsm/
+thymeleaf-extras-springsecurity/
+thymeleaf-spring/
